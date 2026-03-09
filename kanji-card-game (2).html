@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>漢字組み合わせカードゲーム</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap');
+
+  :root {
+    --washi: #f5f0e8;
+    --washi-dark: #e8dfc8;
+    --sumi: #1a1208;
+    --beni: #c0392b;
+    --kon: #1a3a5c;
+    --kincha: #c8860a;
+    --midori: #2d6a4f;
+    --gray: #8a8070;
+    --shadow: rgba(26, 18, 8, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background-color: #2c1810;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(180, 100, 30, 0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(30, 60, 100, 0.15) 0%, transparent 60%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h60v60H0z' fill='none'/%3E%3Cpath d='M30 0v60M0 30h60' stroke='%23ffffff' stroke-width='0.3' opacity='0.04'/%3E%3C/svg%3E");
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    color: var(--sumi);
+  }
+
+  /* ---- Header ---- */
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  header h1 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: var(--washi);
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+    letter-spacing: 0.15em;
+  }
+  header p {
+    color: #c8a87a;
+    font-size: 0.78rem;
+    margin-top: 4px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ---- Game Container ---- */
+  .game-container {
+    width: 100%;
+    max-width: 780px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ---- Panel ---- */
+  .panel {
+    background: var(--washi);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 20px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.7);
+    border: 1px solid rgba(200,180,140,0.5);
+    position: relative;
+    overflow: hidden;
+  }
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: 8px;
+  }
+
+  .panel-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--gray);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--washi-dark);
+    padding-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ---- Stats Bar ---- */
+  .stats-bar {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #1a3a5c, #2c1810);
+    border-radius: 8px;
+    padding: 12px 20px;
+    color: var(--washi);
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: #c8a87a;
+  }
+  .stat-value {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .stat-divider {
+    width: 1px;
+    height: 36px;
+    background: rgba(255,255,255,0.2);
+  }
+
+  /* ---- Cards ---- */
+  .hand-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    min-height: 100px;
+    align-items: center;
+  }
+
+  .card {
+    width: 72px;
+    height: 96px;
+    background: var(--washi);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--sumi);
+    cursor: pointer;
+    border: 2px solid var(--washi-dark);
+    box-shadow: 2px 4px 10px var(--shadow);
+    transition: all 0.18s ease;
+    position: relative;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px solid rgba(180,160,120,0.3);
+    border-radius: 3px;
+    pointer-events: none;
+  }
+  .card:hover {
+    transform: translateY(-6px) scale(1.05);
+    box-shadow: 3px 12px 20px var(--shadow);
+    border-color: var(--kincha);
+  }
+  .card.selected {
+    border-color: var(--beni);
+    background: #fff8f0;
+    transform: translateY(-10px) scale(1.07);
+    box-shadow: 3px 16px 24px rgba(192,57,43,0.25);
+    z-index: 10;
+  }
+  .card.selected::before {
+    content: '✓';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--beni);
+    color: white;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: sans-serif;
+  }
+
+  /* ---- Action Area ---- */
+  .action-area {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .selected-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.1rem;
+    min-height: 40px;
+    color: var(--gray);
+  }
+  .preview-card {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: white;
+    border: 2px solid var(--beni);
+    border-radius: 5px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--sumi);
+    animation: floatIn 0.2s ease;
+  }
+  @keyframes floatIn {
+    from { transform: translateY(-4px) scale(0.9); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+  .preview-plus {
+    color: var(--kincha);
+    font-weight: 700;
+  }
+  .preview-arrow {
+    color: var(--gray);
+    font-size: 1rem;
+  }
+
+  .kanji-input-area {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .kanji-input {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.6rem;
+    width: 80px;
+    height: 56px;
+    text-align: center;
+    border: 2px solid var(--washi-dark);
+    border-radius: 6px;
+    background: white;
+    color: var(--sumi);
+    outline: none;
+    transition: border-color 0.2s;
+    padding: 4px;
+  }
+  .kanji-input:focus {
+    border-color: var(--kon);
+  }
+  .kanji-input.error {
+    border-color: var(--beni);
+    animation: shake 0.35s ease;
+  }
+  .kanji-input.success {
+    border-color: var(--midori);
+    background: #f0fff4;
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  /* ---- Buttons ---- */
+  .btn {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--beni), #a93226);
+    color: white;
+    box-shadow: 0 3px 10px rgba(192,57,43,0.3);
+  }
+  .btn-primary:hover { box-shadow: 0 5px 15px rgba(192,57,43,0.4); transform: translateY(-1px); }
+  .btn-primary:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    background: var(--washi-dark);
+    color: var(--sumi);
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+  .btn-secondary:hover { background: #ddd4bc; }
+
+  .btn-draw {
+    background: linear-gradient(135deg, var(--kon), #142d4c);
+    color: white;
+    padding: 12px 28px;
+    font-size: 0.9rem;
+    box-shadow: 0 3px 12px rgba(26,58,92,0.35);
+  }
+  .btn-draw:hover { box-shadow: 0 5px 18px rgba(26,58,92,0.45); transform: translateY(-1px); }
+
+  /* ---- Deck Area ---- */
+  .deck-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .deck-visual {
+    position: relative;
+    width: 72px;
+    height: 96px;
+    cursor: pointer;
+  }
+  .deck-visual .deck-back {
+    position: absolute;
+    width: 72px;
+    height: 96px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #1a3a5c, #2c1810);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.4rem;
+    color: rgba(255,255,255,0.3);
+    box-shadow: 2px 4px 10px var(--shadow);
+  }
+  .deck-visual .deck-back:nth-child(1) { transform: translate(-4px, -4px); opacity: 0.5; }
+  .deck-visual .deck-back:nth-child(2) { transform: translate(-2px, -2px); opacity: 0.75; }
+  .deck-visual .deck-back:nth-child(3) { transform: none; }
+
+  /* ---- Message ---- */
+  .message-area {
+    text-align: center;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .message {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 6px 16px;
+    border-radius: 20px;
+    animation: fadeUp 0.3s ease;
+  }
+  .message.success {
+    background: rgba(45,106,79,0.12);
+    color: var(--midori);
+    border: 1px solid rgba(45,106,79,0.3);
+  }
+  .message.error {
+    background: rgba(192,57,43,0.1);
+    color: var(--beni);
+    border: 1px solid rgba(192,57,43,0.25);
+  }
+  .message.info {
+    background: rgba(26,58,92,0.1);
+    color: var(--kon);
+    border: 1px solid rgba(26,58,92,0.2);
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* ---- Discarded ---- */
+  .discarded-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 60px;
+    align-items: center;
+  }
+  .discarded-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(45,106,79,0.08);
+    border: 1px solid rgba(45,106,79,0.25);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.85rem;
+    color: var(--midori);
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .discarded-kanji { font-size: 1rem; font-weight: 700; }
+  .discarded-parts { font-size: 0.7rem; opacity: 0.7; }
+
+  /* ---- Hint ---- */
+  .hint-area {
+    background: rgba(200,134,10,0.08);
+    border: 1px solid rgba(200,134,10,0.25);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    color: #7a5c10;
+    line-height: 1.7;
+  }
+
+  /* ---- Clear/Win overlay ---- */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,18,8,0.85);
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: fadeIn 0.4s ease;
+  }
+  .overlay.show { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .overlay-box {
+    background: var(--washi);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .overlay-emoji { font-size: 3rem; margin-bottom: 12px; }
+  .overlay-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--sumi);
+    margin-bottom: 8px;
+  }
+  .overlay-sub {
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+  }
+
+  /* ---- Hint toggle ---- */
+  .hint-toggle {
+    font-size: 0.7rem;
+    color: var(--kincha);
+    cursor: pointer;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    font-family: 'Noto Sans JP', sans-serif;
+    padding: 0;
+  }
+
+  /* ---- Help text ---- */
+  .help-rule {
+    font-size: 0.72rem;
+    color: var(--gray);
+    text-align: center;
+    line-height: 1.9;
+  }
+
+  .empty-hand {
+    color: var(--gray);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .badge {
+    display: inline-block;
+    background: var(--beni);
+    color: white;
+    font-size: 0.6rem;
+    padding: 1px 5px;
+    border-radius: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  /* ---- 行き詰まり通知 ---- */
+  .stuck-notice {
+    display: none;
+    background: linear-gradient(135deg, rgba(200,134,10,0.12), rgba(200,134,10,0.06));
+    border: 1.5px dashed var(--kincha);
+    border-radius: 8px;
+    padding: 12px 18px;
+    text-align: center;
+    animation: fadeUp 0.4s ease;
+  }
+  .stuck-notice.show { display: block; }
+  .stuck-notice p {
+    font-size: 0.82rem;
+    color: #7a5c10;
+    margin-bottom: 10px;
+    line-height: 1.7;
+  }
+  .btn-extra-draw {
+    background: linear-gradient(135deg, var(--kincha), #a06a08);
+    color: white;
+    font-size: 0.85rem;
+    padding: 10px 24px;
+    box-shadow: 0 3px 10px rgba(200,134,10,0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-extra-draw:hover {
+    box-shadow: 0 5px 16px rgba(200,134,10,0.45);
+    transform: translateY(-1px);
+  }
+  .btn-extra-draw:disabled {
+    background: #ccc;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .extra-draw-count {
+    font-size: 0.65rem;
+    background: rgba(255,255,255,0.25);
+    padding: 1px 5px;
+    border-radius: 8px;
+  }
+
+  @keyframes pulse {
+    0%,100% { transform: scale(1); box-shadow: 0 3px 12px rgba(26,58,92,0.35); }
+    50% { transform: scale(1.06); box-shadow: 0 6px 22px rgba(26,58,92,0.55); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>漢字組み合わせ</h1>
+  <p>カードのパーツを組み合わせて漢字を作ろう</p>
+</header>
+
+<div class="game-container">
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat">
+      <span class="stat-label">手　札</span>
+      <span class="stat-value" id="hand-count">0</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-label">山　札</span>
+      <span class="stat-value" id="deck-count">0</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-label">スコア</span>
+      <span class="stat-value" id="score">0</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-label">捨て枚数</span>
+      <span class="stat-value" id="discard-count">0</span>
+    </div>
+  </div>
+
+  <!-- Hand -->
+  <div class="panel">
+    <div class="panel-title">
+      <span>手　札</span>
+      <span class="badge" id="hand-badge">0枚</span>
+    </div>
+    <div class="hand-area" id="hand-area">
+      <span class="empty-hand">カードを引いてください</span>
+    </div>
+  </div>
+
+  <!-- 行き詰まり通知 -->
+  <div class="stuck-notice" id="stuck-notice">
+    <p>🔍 現在の手札では<strong>有効な組み合わせが見つかりません</strong><br>山札から3枚追加で引くことができます</p>
+    <button class="btn btn-extra-draw" id="extra-draw-btn" onclick="extraDraw()">
+      ＋３枚引く
+      <span class="extra-draw-count" id="extra-draw-count">残り山札: <span id="extra-draw-remaining">-</span>枚</span>
+    </button>
+  </div>
+
+  <!-- Selection & Input -->
+  <div class="panel">
+    <div class="panel-title">
+      <span>組み合わせ</span>
+      <button class="hint-toggle" id="hint-toggle" onclick="toggleHint()">ヒントを見る</button>
+    </div>
+    <div class="action-area">
+      <div class="selected-preview" id="selected-preview">
+        <span style="color:var(--gray);font-size:0.82rem">カードを2〜3枚選んでください</span>
+      </div>
+      <div class="kanji-input-area">
+        <button class="btn btn-primary" id="submit-btn" onclick="submitCombo()" disabled>
+          捨てる
+        </button>
+        <button class="btn btn-secondary" onclick="clearSelection()">
+          クリア
+        </button>
+      </div>
+      <div style="margin-top: 8px; text-align: center;">
+        <a href="https://kanji.jitenon.jp/kousei/" target="_blank" rel="noopener noreferrer" 
+           style="font-size: 0.85rem; color: var(--primary); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+          🔍 読めない漢字を構成から調べる
+          <span style="font-size: 0.75rem; opacity: 0.7;">（外部サイト）</span>
+        </a>
+      </div>
+      <div id="hint-area" class="hint-area" style="display:none; width:100%; max-width:500px">
+        ヒントを読み込み中...
+      </div>
+      <div class="message-area">
+        <div class="message info" id="message" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deck -->
+  <div class="panel">
+    <div class="panel-title"><span>山　札</span></div>
+    <div class="deck-area">
+      <div class="deck-visual" onclick="drawCards()" title="クリックして引く">
+        <div class="deck-back">牌</div>
+        <div class="deck-back">牌</div>
+        <div class="deck-back">牌</div>
+      </div>
+      <div style="text-align:center">
+        <button class="btn btn-draw" onclick="drawCards()" id="draw-btn">
+          ７枚引く
+        </button>
+        <div style="font-size:0.72rem;color:#c8a87a;margin-top:6px" id="draw-hint">ゲーム開始</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Discarded -->
+  <div class="panel">
+    <div class="panel-title">
+      <span>捨て札（正解）</span>
+      <span class="badge" id="discard-badge">0組</span>
+    </div>
+    <div class="discarded-area" id="discarded-area">
+      <span class="empty-hand">まだありません</span>
+    </div>
+  </div>
+
+  <!-- Rules -->
+  <div class="panel">
+    <div class="panel-title"><span>遊び方</span></div>
+    <p class="help-rule">
+      ① 山札から7枚引く。<br>
+      ② 手札のカードを2〜3枚選ぶ。<br>
+      ③ それらを組み合わせてできる<strong>常用漢字</strong>を入力して「捨てる」。<br>
+      ④ 正しければそのカードが捨て札になる。<br>
+      ⑤ 手札が0枚になったら「補充する」で次のラウンドへ。<br>
+      ⑥ <strong>有効な組み合わせがない場合</strong>は「＋１枚引く」が出現。<br>
+      ⑦ 全ラウンドで手札が0枚になればクリア！<br>
+      <br>
+      例：「日」＋「青」→「晴」　「日」＋「刀」＋「口」→「昭」<br>
+      ※正解判定は <a href="https://kanji.jitenon.jp/kousei/" target="_blank" style="color:var(--kincha)">漢字辞典オンライン（構成検索）</a> を参照します<br>
+      ※常用漢字のみ正解（人名用・表外漢字は不正解）<br>
+      ※オフライン時はゲーム内データのみで判定
+    </p>
+  </div>
+
+</div>
+
+<!-- Win Overlay -->
+<div class="overlay" id="win-overlay">
+  <div class="overlay-box">
+    <div class="overlay-emoji">🎉</div>
+    <div class="overlay-title">クリア！</div>
+    <div class="overlay-sub" id="win-sub">おめでとうございます！</div>
+    <button class="btn btn-primary" onclick="resetGame()" style="margin-top:10px">もう一度</button>
+  </div>
+</div>
+
+<!-- Game Over Overlay -->
+<div class="overlay" id="gameover-overlay">
+  <div class="overlay-box">
+    <div class="overlay-emoji">📖</div>
+    <div class="overlay-title">山札切れ</div>
+    <div class="overlay-sub" id="gameover-sub">残り手札があります</div>
+    <button class="btn btn-primary" onclick="resetGame()" style="margin-top:10px">もう一度</button>
+  </div>
+</div>
+
+<script>
+// ===================================================================
+//  正規化（表示はそのまま、内部比較で統一）
+// ===================================================================
+const NORMALIZE_PART = {};
+function normPart(p) { return NORMALIZE_PART[p] || p; }
+
+// ===================================================================
+//  使用可能なカード一覧（指定リスト）
+// ===================================================================
+const ALLOWED_CARDS = new Set([
+  // 部首・偏旁
+  "乚","亠","亻","人","儿","入","八","冖","冫","几","刀","刂","力","勹","匕","匚",
+  "十","卜","卩","厂","厶","又","口","囗","土","士","夂","夕","大","女","子","宀",
+  "寸","小","尸","山","川","工","己","巾","干","幺","广","廴","廾","弋","弓","彡",
+  "彳","忄","扌","氵","犭","艹","辶","阝","心","戈","戸","手","支","攵","文","斗",
+  "斤","方","日","月","木","欠","止","歹","殳","毋","比","毛","氏","水","火","父",
+  "丬","片","牙","牛","犬","礻","玄","玉","王","甘","生","田","疒","白","癶","皮",
+  "皿","目","矛","矢","石","示","禾","穴","立","衤","竹","米","糸","羊","而","耒",
+  "耳","聿","肉","臣","自","至","舌","舟","艮","色","虫","血","行","衣","西","見",
+  "角","貝","言","谷","豆","豕","赤","走","足","身","車","辛","辰","酉","里","金",
+  "長","門","隶","隹","雨","青","非","韋","音","頁","食","馬","骨","高","魚","鳥",
+  "麻","黒",
+  // 字形パーツ
+  "七","丁","九","亡","刃","千","及","五","今","公","六","乂","少","尺","且","主",
+  "令","兄","出","包","半","占","北","去","右","可","句","古","召","失","光","充",
+  "先","全","兆","共","各","吉","同","名","因","多","安","守","寺","成","皆","早",
+  "旨","有","朱","毎","百","羽","余","肖","良","京","免","周","奇","易","昜","果",
+  "卆","区","炎","反","巴","勺","圣","亦","単","夹","市","灬","袁","龶","录","戠","者"
+]);
+
+// ===================================================================
+//  コンボデータ
+//  ・全 parts が ALLOWED_CARDS に含まれるものだけ
+//  ・常用漢字として妥当なもの
+// ===================================================================
+const KANJI_COMBOS = [
+  // ═══ 亻（にんべん） ═══
+  { parts: ["亻","山"],  kanji: "仙" },
+  { parts: ["亻","可"],  kanji: "何" },
+  { parts: ["亻","立"],  kanji: "位" },
+  { parts: ["亻","主"],  kanji: "住" },
+  { parts: ["亻","木"],  kanji: "休" },
+  { parts: ["亻","寸"],  kanji: "付" },
+  { parts: ["亻","寺"],  kanji: "侍" },
+  { parts: ["亻","足"],  kanji: "促" },
+  { parts: ["亻","言"],  kanji: "信" },
+  { parts: ["亻","共"],  kanji: "供" },
+  { parts: ["亻","反"],  kanji: "仮" },
+  { parts: ["亻","白"],  kanji: "伯" },
+  { parts: ["亻","犬"],  kanji: "伏" },
+  { parts: ["亻","毎"],  kanji: "侮" },
+
+  // ═══ 卜 ═══
+  { parts: ["卜","口"],  kanji: "占" },
+
+  // ═══ 口 ═══
+  { parts: ["口","土"],  kanji: "吐" },
+  { parts: ["口","刀"],  kanji: "召" },
+  { parts: ["口","鳥"],  kanji: "鳴" },
+
+  // ═══ 囗（くにがまえ） ═══
+  { parts: ["囗","口"],  kanji: "回" },
+  { parts: ["囗","玉"],  kanji: "国" },
+  { parts: ["囗","古"],  kanji: "固" },
+  { parts: ["囗","寸"],  kanji: "団" },
+  { parts: ["囗","木"],  kanji: "困" },
+
+  // ═══ 土 ═══
+  { parts: ["土","反"],  kanji: "坂" },
+  { parts: ["土","里"],  kanji: "埋" },
+  { parts: ["土","成"],  kanji: "城" },
+  { parts: ["土","也"],  kanji: "地" },
+  { parts: ["土","方"],  kanji: "坊" },
+
+  // ═══ 女 ═══
+  { parts: ["女","己"],  kanji: "妃" },
+  { parts: ["女","子"],  kanji: "好" },
+  { parts: ["女","又"],  kanji: "奴" },
+  { parts: ["女","少"],  kanji: "妙" },
+  { parts: ["女","口"],  kanji: "如" },
+
+  // ═══ 宀（うかんむり） ═══
+  { parts: ["宀","女"],  kanji: "安" },
+  { parts: ["宀","子"],  kanji: "字" },
+  { parts: ["宀","至"],  kanji: "室" },
+  { parts: ["宀","各"],  kanji: "客" },
+  { parts: ["宀","寸"],  kanji: "守" },
+  { parts: ["宀","八"],  kanji: "穴" },
+  { parts: ["宀","玉"],  kanji: "宝" },
+  { parts: ["宀","且"],  kanji: "宜" },
+
+  // ═══ 山 ═══
+  { parts: ["山","山"],  kanji: "出" },
+
+  // ═══ 工 ═══
+  { parts: ["工","力"],  kanji: "功" },
+
+  // ═══ 己 ═══
+  { parts: ["己","酉"],  kanji: "配" },
+
+  // ═══ 忄（りっしんべん） ═══
+  { parts: ["忄","毎"],  kanji: "悔" },
+  { parts: ["忄","生"],  kanji: "性" },
+  { parts: ["忄","青"],  kanji: "情" },
+
+  // ═══ 心 ═══
+  { parts: ["心","亡"],  kanji: "忘" },
+  { parts: ["心","因"],  kanji: "恩" },
+
+  // ═══ 扌（てへん） ═══
+  { parts: ["扌","支"],  kanji: "技" },
+  { parts: ["扌","斤"],  kanji: "折" },
+  { parts: ["扌","召"],  kanji: "招" },
+  { parts: ["扌","殳"],  kanji: "投" },
+  { parts: ["扌","旨"],  kanji: "指" },
+  { parts: ["扌","包"],  kanji: "抱" },
+  { parts: ["扌","兆"],  kanji: "挑" },
+  { parts: ["扌","寺"],  kanji: "持" },
+  { parts: ["扌","舌"],  kanji: "括" },
+  { parts: ["扌","少"],  kanji: "抄" },
+  { parts: ["扌","石"],  kanji: "拓" },
+  { parts: ["扌","比"],  kanji: "批" },
+  { parts: ["扌","隹"],  kanji: "推" },
+
+  // ═══ 氵（さんずい） ═══
+  { parts: ["氵","可"],  kanji: "河" },
+  { parts: ["氵","舌"],  kanji: "活" },
+  { parts: ["氵","白"],  kanji: "泊" },
+  { parts: ["氵","羊"],  kanji: "洋" },
+  { parts: ["氵","毎"],  kanji: "海" },
+  { parts: ["氵","由"],  kanji: "油" },
+  { parts: ["氵","工"],  kanji: "江" },
+  { parts: ["氵","主"],  kanji: "注" },
+  { parts: ["氵","青"],  kanji: "清" },
+  { parts: ["氵","良"],  kanji: "浪" },
+  { parts: ["氵","皮"],  kanji: "波" },
+  { parts: ["氵","兄"],  kanji: "況" },
+  { parts: ["氵","先"],  kanji: "洗" },
+  { parts: ["氵","各"],  kanji: "洛" },
+  { parts: ["氵","立"],  kanji: "泣" },
+  { parts: ["氵","包"],  kanji: "泡" },
+  { parts: ["氵","酉"],  kanji: "酒" },
+  { parts: ["氵","殳"],  kanji: "没" },
+  { parts: ["氵","召"],  kanji: "沼" },
+
+  // ═══ 攵（のぶん） ═══
+  { parts: ["攵","古"],  kanji: "故" },
+  { parts: ["攵","工"],  kanji: "攻" },
+  { parts: ["攵","己"],  kanji: "改" },
+
+  // ═══ 日 ═══
+  { parts: ["日","月"],  kanji: "明" },
+  { parts: ["日","青"],  kanji: "晴" },
+  { parts: ["日","生"],  kanji: "星" },
+  { parts: ["日","寺"],  kanji: "時" },
+  { parts: ["日","比"],  kanji: "昆" },
+  { parts: ["日","立"],  kanji: "音" },
+
+  // ═══ 月 ═══
+  { parts: ["月","支"],  kanji: "肢" },
+  { parts: ["月","旨"],  kanji: "脂" },
+  { parts: ["月","方"],  kanji: "肪" },
+  { parts: ["月","同"],  kanji: "胴" },
+
+  // ═══ 良 ═══
+  { parts: ["良","月"],  kanji: "朗" },
+
+  // ═══ 木 ═══
+  { parts: ["木","木"],  kanji: "林" },
+  { parts: ["木","目"],  kanji: "相" },
+  { parts: ["木","艮"],  kanji: "根" },
+  { parts: ["木","寸"],  kanji: "村" },
+  { parts: ["木","斤"],  kanji: "析" },
+  { parts: ["木","支"],  kanji: "枝" },
+  { parts: ["木","反"],  kanji: "板" },
+  { parts: ["木","毎"],  kanji: "梅" },
+  { parts: ["木","古"],  kanji: "枯" },
+  { parts: ["木","兆"],  kanji: "桃" },
+  { parts: ["木","攵"],  kanji: "枚" },
+
+  // ═══ 水 ═══
+  { parts: ["水","白"],  kanji: "泉" },
+
+  // ═══ 火 ═══
+  { parts: ["火","火"],  kanji: "炎" },
+  { parts: ["火","勺"],  kanji: "灼" },
+
+  // ═══ 王（おうへん） ═══
+  { parts: ["王","里"],  kanji: "理" },
+  { parts: ["王","見"],  kanji: "現" },
+
+  // ═══ 田 ═══
+  { parts: ["田","力"],  kanji: "男" },
+  { parts: ["田","共"],  kanji: "異" },
+
+  // ═══ 目 ═══
+  { parts: ["目","儿"],  kanji: "見" },
+
+  // ═══ 白 ═══
+  { parts: ["白","勺"],  kanji: "的" },
+
+  // ═══ 石 ═══
+  { parts: ["石","皮"],  kanji: "破" },
+
+  // ═══ 禾 ═══
+  { parts: ["禾","口"],  kanji: "和" },
+  { parts: ["禾","斗"],  kanji: "科" },
+  { parts: ["禾","失"],  kanji: "秩" },
+  { parts: ["禾","且"],  kanji: "租" },
+  { parts: ["禾","少"],  kanji: "秒" },
+  { parts: ["禾","火"],  kanji: "秋" },
+
+  // ═══ 穴 ═══
+
+  // ═══ 衤（ころもへん） ═══
+  { parts: ["衤","皮"],  kanji: "被" },
+  { parts: ["衤","刀"],  kanji: "初" },
+  { parts: ["衤","果"],  kanji: "裸" },
+
+  // ═══ 竹 ═══
+  { parts: ["竹","合"],  kanji: "答" },
+  { parts: ["竹","友"],  kanji: "笑" },
+
+  // ═══ 米 ═══
+  { parts: ["米","青"],  kanji: "精" },
+  { parts: ["米","辶"],  kanji: "迷" },
+
+  // ═══ 糸 ═══
+  { parts: ["糸","隹"],  kanji: "維" },
+  { parts: ["糸","吉"],  kanji: "結" },
+  { parts: ["糸","田"],  kanji: "細" },
+  { parts: ["糸","工"],  kanji: "紅" },
+  { parts: ["糸","氏"],  kanji: "紙" },
+  { parts: ["糸","冬"],  kanji: "終" },
+  { parts: ["糸","各"],  kanji: "絡" },
+  { parts: ["糸","勺"],  kanji: "約" },
+  { parts: ["糸","召"],  kanji: "紹" },
+
+  // ═══ 貝 ═══
+  { parts: ["目","八"],  kanji: "貝" },
+
+  // ═══ 言 ═══
+  { parts: ["言","周"],  kanji: "調" },
+  { parts: ["言","己"],  kanji: "記" },
+  { parts: ["言","青"],  kanji: "請" },
+  { parts: ["言","式"],  kanji: "試" },
+  { parts: ["言","果"],  kanji: "課" },
+  { parts: ["言","寺"],  kanji: "詩" },
+  { parts: ["言","吉"],  kanji: "詰" },
+  { parts: ["言","午"],  kanji: "許" },
+  { parts: ["言","寸"],  kanji: "討" },
+  { parts: ["言","成"],  kanji: "誠" },
+  { parts: ["言","羊"],  kanji: "詳" },
+  { parts: ["言","方"],  kanji: "訪" },
+  { parts: ["言","舌"],  kanji: "話" },
+  { parts: ["言","召"],  kanji: "詔" },
+  { parts: ["言","殳"],  kanji: "設" },
+
+  // ═══ 走 ═══
+  { parts: ["走","己"],  kanji: "起" },
+  { parts: ["走","召"],  kanji: "超" },
+  { parts: ["走","卜"],  kanji: "赴" },
+
+  // ═══ 足 ═══
+  { parts: ["足","各"],  kanji: "路" },
+
+  // ═══ 車 ═══
+  { parts: ["車","九"],  kanji: "軌" },
+  { parts: ["車","辶"],  kanji: "連" },
+
+  // ═══ 冖 ═══
+  { parts: ["冖","車"],  kanji: "軍" },
+
+  // ═══ 里 ═══
+
+  // ═══ 金 ═══
+  { parts: ["金","失"],  kanji: "鉄" },
+  { parts: ["金","同"],  kanji: "銅" },
+  { parts: ["金","艮"],  kanji: "銀" },
+
+  // ═══ 門 ═══
+  { parts: ["門","木"],  kanji: "閑" },
+  { parts: ["門","口"],  kanji: "問" },
+  { parts: ["門","耳"],  kanji: "聞" },
+  { parts: ["門","日"],  kanji: "間" },
+
+  // ═══ 雨 ═══
+  { parts: ["雨","田"],  kanji: "雷" },
+
+  // ═══ 阝（おおざと/こざと） ═══
+  { parts: ["阝","且"],  kanji: "阻" },
+  { parts: ["阝","良"],  kanji: "郎" },
+  { parts: ["阝","反"],  kanji: "阪" },
+
+  // ═══ 辶（しんにょう） ═══
+  { parts: ["辶","斤"],  kanji: "近" },
+  { parts: ["辶","失"],  kanji: "迭" },
+  { parts: ["辶","周"],  kanji: "週" },
+  { parts: ["辶","兆"],  kanji: "逃" },
+  { parts: ["辶","反"],  kanji: "返" },
+  { parts: ["辶","艮"],  kanji: "退" },
+  { parts: ["辶","隹"],  kanji: "進" },
+
+  // ═══ 礻（しめすへん） ═══
+  { parts: ["礻","兄"],  kanji: "祝" },
+  { parts: ["礻","且"],  kanji: "祖" },
+  { parts: ["礻","申"],  kanji: "神" },
+  { parts: ["礻","羊"],  kanji: "祥" },
+
+  // ═══ 疒（やまいだれ） ═══
+  { parts: ["疒","知"],  kanji: "痴" },
+
+  // ═══ 艹（くさかんむり） ═══
+  { parts: ["艹","早"],  kanji: "草" },
+  { parts: ["艹","古"],  kanji: "苦" },
+  { parts: ["艹","果"],  kanji: "菓" },
+  { parts: ["艹","田"],  kanji: "苗" },
+  // 落 = 艹+氵+各（3パーツ）→ 3パーツコンボに記載
+
+  // ═══ 心・忄 の追加 ═══
+  { parts: ["田","心"],  kanji: "思" },
+  { parts: ["忄","艮"],  kanji: "恨" },
+  { parts: ["立","日","心"],  kanji: "意" },
+  { parts: ["女","又","心"],  kanji: "怒" },
+
+  // ═══ 礻（しめすへん）追加 ═══
+  { parts: ["礻","斤"],  kanji: "祈" },
+
+  // ═══ 隹 ═══
+  { parts: ["隹","又"],  kanji: "隻" },
+
+  // ═══ 新規追加コンボ ═══
+  { parts: ["千","口"],  kanji: "舌" },
+  { parts: ["舌","乚"],  kanji: "乱" },
+  { parts: ["立","十"],  kanji: "辛" },
+  { parts: ["木","乚"],  kanji: "札" },
+  { parts: ["礻","乚"],  kanji: "礼" },
+  { parts: ["勹","口"],  kanji: "句" },
+  { parts: ["勹","日"],  kanji: "旬" },
+  { parts: ["勹","己"],  kanji: "包" },
+  { parts: ["女","因"],  kanji: "姻" },
+  { parts: ["言","尺"],  kanji: "訳" },
+  { parts: ["氵","尺"],  kanji: "沢" },
+  { parts: ["扌","尺"],  kanji: "択" },
+  { parts: ["立","早"],  kanji: "章" },
+  { parts: ["立","里"],  kanji: "童" },
+  { parts: ["口","及"],  kanji: "吸" },
+  { parts: ["糸","及"],  kanji: "級" },
+  { parts: ["扌","及"],  kanji: "扱" },
+  { parts: ["人","良"],  kanji: "食" },
+  { parts: ["者","阝"],  kanji: "都" },
+  { parts: ["言","者"],  kanji: "諸" },
+  { parts: ["糸","者"],  kanji: "緒" },
+  { parts: ["艹","者"],  kanji: "著" },
+  { parts: ["火","田"],  kanji: "畑" },
+  { parts: ["刀","辶"],  kanji: "辺" },
+  { parts: ["土","寸"],  kanji: "寺" },
+  { parts: ["木","卜"],  kanji: "朴" },
+  { parts: ["且","力"],  kanji: "助" },
+  { parts: ["口","王"],  kanji: "呈" },
+  { parts: ["女","方"],  kanji: "妨" },
+  { parts: ["山","支"],  kanji: "岐" },
+  { parts: ["己","心"],  kanji: "忌" },
+  { parts: ["礻","土"],  kanji: "社" },
+  { parts: ["穴","九"],  kanji: "究" },
+  { parts: ["穴","工"],  kanji: "空" },
+  { parts: ["卜","早"],  kanji: "卓" },
+  { parts: ["耳","又"],  kanji: "取" },
+  { parts: ["禾","女"],  kanji: "委" },
+  { parts: ["禾","子"],  kanji: "季" },
+  { parts: ["山","石"],  kanji: "岩" },
+  { parts: ["亡","目"],  kanji: "盲" },
+  { parts: ["力","口"],  kanji: "加" },
+  { parts: ["木","且"],  kanji: "査" },
+  { parts: ["比","白"],  kanji: "皆" },
+  { parts: ["白","王"],  kanji: "皇" },
+  { parts: ["糸","己"],  kanji: "紀" },
+  { parts: ["田","月"],  kanji: "胃" },
+  { parts: ["月","包"],  kanji: "胞" },
+  { parts: ["言","十"],  kanji: "計" },
+  { parts: ["金","十"],  kanji: "針" },
+  { parts: ["女","良"],  kanji: "娘" },
+  { parts: ["耳","心"],  kanji: "恥" },
+  { parts: ["米","斗"],  kanji: "料" },
+  { parts: ["八","刀"],  kanji: "分" },
+  { parts: ["糸","方"],  kanji: "紡" },
+  { parts: ["阝","車"],  kanji: "陣" },
+  { parts: ["扌","皮"],  kanji: "披" },
+  { parts: ["日","目"],  kanji: "冒" },
+  { parts: ["女","生"],  kanji: "姓" },
+  // 追加コンボ（刂関連）
+  { parts: ["刂","禾"],  kanji: "利" },
+  { parts: ["刂","貝"],  kanji: "則" },
+  { parts: ["刂","肖"],  kanji: "削" },
+  { parts: ["刂","至"],  kanji: "到" },
+  // 半関連
+  { parts: ["半","亻"],  kanji: "伴" },
+  { parts: ["半","田"],  kanji: "畔" },
+  { parts: ["半","糸"],  kanji: "絆" },
+  // 肖関連
+  { parts: ["肖","氵"],  kanji: "消" },
+  { parts: ["肖","宀"],  kanji: "宵" },
+  { parts: ["肖","石"],  kanji: "硝" },
+  // その他
+  { parts: ["木","主"],  kanji: "柱" },
+  { parts: ["口","儿"],  kanji: "兄" },
+  { parts: ["囗","儿"],  kanji: "四" },
+  { parts: ["日","十"],  kanji: "早" },
+  { parts: ["月","殳"],  kanji: "股" },
+  { parts: ["穴","至"],  kanji: "窒" },
+  { parts: ["月","至"],  kanji: "膣" },
+  // 克
+  { parts: ["十","兄"],  kanji: "克" },
+  { parts: ["古","儿"],  kanji: "克" },
+  // 口+隹→唯、隹+木→集
+  { parts: ["口","隹"],  kanji: "唯" },
+  { parts: ["隹","木"],  kanji: "集" },
+  // 忄+亡→忙
+  { parts: ["忄","亡"],  kanji: "忙" },
+  // 追加コンボ
+  { parts: ["卜","貝"],  kanji: "貞" },
+  { parts: ["日","者"],  kanji: "暑" },
+  { parts: ["方","攵"],  kanji: "放" },
+
+  // ═══ 3パーツ ═══
+  { parts: ["日","刀","口"],   kanji: "昭" },
+  { parts: ["木","木","木"],   kanji: "森" },
+  { parts: ["口","口","口"],   kanji: "品" },
+  { parts: ["日","日","日"],   kanji: "晶" },
+  { parts: ["日","口","口"],   kanji: "唱" },
+  { parts: ["宀","八","犬"],   kanji: "突" },
+  { parts: ["亻","口","木"],   kanji: "保" },
+  { parts: ["見","立","木"],   kanji: "親" },
+  { parts: ["宀","女","子"],   kanji: "字" },
+  { parts: ["田","力","口"],   kanji: "勇" },
+  { parts: ["走","耳","又"],   kanji: "趣" },
+  { parts: ["日","耳","又"],   kanji: "最" },
+  { parts: ["車","冖","辶"],   kanji: "運" },
+  { parts: ["艹","氵","各"],   kanji: "落" },
+  { parts: ["氵","刀","口"],   kanji: "沼" },
+  { parts: ["扌","刀","口"],   kanji: "招" },
+  { parts: ["言","刀","口"],   kanji: "詔" },
+  { parts: ["糸","刀","口"],   kanji: "紹" },
+  // 新規3パーツコンボ
+  { parts: ["舌","立","十"],   kanji: "辞" },
+  { parts: ["耳","口","王"],   kanji: "聖" },
+  { parts: ["宀","八","九"],   kanji: "究" },
+  { parts: ["宀","八","工"],   kanji: "空" },
+  { parts: ["亻","土","土"],   kanji: "佳" },
+  { parts: ["扌","口","刀"],   kanji: "拐" },
+  { parts: ["扌","勹","口"],   kanji: "拘" },
+  { parts: ["扌","山","山"],   kanji: "拙" },
+  { parts: ["木","木","九"],   kanji: "枠" },
+  { parts: ["米","木","九"],   kanji: "粋" },
+  { parts: ["酉","九","木"],   kanji: "酔" },
+  { parts: ["九","木","隹"],   kanji: "雑" },
+  { parts: ["氵","八","口"],   kanji: "沿" },
+  { parts: ["艹","又","土"],   kanji: "茎" },
+  { parts: ["糸","又","土"],   kanji: "経" },
+  { parts: ["車","又","土"],   kanji: "軽" },
+  { parts: ["土","土","寸"],   kanji: "封" },
+  { parts: ["力","口","木"],   kanji: "架" },
+  { parts: ["氵","九","木"],   kanji: "染" },
+  { parts: ["阝","比","白"],   kanji: "階" },
+  { parts: ["阝","比","土"],   kanji: "陛" },
+  { parts: ["石","九","十"],   kanji: "砕" },
+  { parts: ["卜","目","八"],   kanji: "貞" },
+  { parts: ["宀","日","女"],   kanji: "宴" },
+  { parts: ["宀","女","木"],   kanji: "案" },
+  { parts: ["米","八","刀"],   kanji: "粉" },
+  { parts: ["糸","八","刀"],   kanji: "紛" },
+  { parts: ["艹","亻","可"],   kanji: "荷" },
+  // 追加3パーツコンボ
+  { parts: ["氵","刂","貝"],   kanji: "測" },
+  { parts: ["亻","刂","貝"],   kanji: "側" },
+  { parts: ["雨","木","目"],   kanji: "霜" },
+  { parts: ["雨","足","各"],   kanji: "露" },
+  { parts: ["穴","扌","工"],   kanji: "控" },
+  { parts: ["月","穴","工"],   kanji: "腔" },
+  { parts: ["宀","立","十"],   kanji: "宰" },
+  { parts: ["十","口","儿"],   kanji: "克" },
+  { parts: ["女","又","力"],   kanji: "努" },
+  { parts: ["十","口","古"],   kanji: "克" },
+  { parts: ["亻","囗","古"],   kanji: "個" },
+  { parts: ["立","木","斤"],   kanji: "新" },
+  { parts: ["氵","隹","十"],   kanji: "準" },
+  { parts: ["亻","方","攵"],   kanji: "倣" },
+];
+
+// ===================================================================
+//  コンボの重複を除去し、パーツが全て ALLOWED_CARDS にあるものだけ残す
+// ===================================================================
+const _seen = new Set();
+const KANJI_COMBOS_FILTERED = KANJI_COMBOS.filter(c => {
+  // パーツ全部がカードリストに含まれているか
+  if (!c.parts.every(p => ALLOWED_CARDS.has(p))) return false;
+  // 重複除去（同じparts+kanjイ）
+  const key = [...c.parts].sort().join("") + c.kanji;
+  if (_seen.has(key)) return false;
+  _seen.add(key);
+  return true;
+});
+// 以降 KANJI_COMBOS の代わりに KANJI_COMBOS_FILTERED を使うため上書き
+const KANJI_COMBOS_FINAL = KANJI_COMBOS_FILTERED;
+
+// ── パーツ表示ラベル ──
+const PART_LABELS = {
+  "亻": "にんべん",
+  "儿": "にんにょう",
+  "冖": "わかんむり",
+  "冫": "にすい",
+  "刂": "りっとう",
+  "勹": "つつみがまえ",
+  "匕": "ひとさじ",
+  "匚": "はこがまえ",
+  "卜": "ぼく",
+  "卩": "ふしづくり",
+  "厂": "がんだれ",
+  "厶": "む",
+  "夂": "ふゆがしら",
+  "囗": "くにがまえ",
+  "宀": "うかんむり",
+  "幺": "よう",
+  "广": "まだれ",
+  "廴": "えんにょう",
+  "廾": "こまぬき",
+  "弋": "よく",
+  "彡": "さんづくり",
+  "彳": "ぎょうにんべん",
+  "忄": "りっしんべん",
+  "扌": "てへん",
+  "氵": "さんずい",
+  "犭": "けものへん",
+  "艹": "くさかんむり",
+  "辶": "しんにょう",
+  "阝": "おおざと/こざと",
+  "丬": "しょうへん",
+  "礻": "しめすへん",
+  "疒": "やまいだれ",
+  "衤": "ころもへん",
+  "攵": "のぶん",
+  "殳": "るまた",
+  "聿": "ふでづくり",
+  "癶": "はつがしら",
+  "耒": "らいすき",
+  "隶": "れいづくり",
+  "韋": "なめしがわ",
+  "乚": "おつにょう",
+  "亠": "なべぶた",
+};
+
+// 全カードプール＝コンボに登場するパーツのみ（ALLOWED_CARDS の部分集合）
+const CARD_POOL_SET = new Set();
+KANJI_COMBOS_FINAL.forEach(combo => {
+  combo.parts.forEach(p => CARD_POOL_SET.add(p));
+});
+const CARD_POOL = [...CARD_POOL_SET];
+
+// ゲーム状態
+let deck = [];
+let hand = [];
+let discarded = [];
+let selectedIndices = [];
+let score = 0;
+let gameStarted = false;
+let extraDrawUsed = 0;  // 追加ドロー使用回数
+
+// ====== 初期化 ======
+function initGame() {
+  // デッキ作成：指定パーツは15コピー（3倍頻度）、それ以外は5コピー
+  const TRIPLE_FREQ = new Set(["亻","氵","言","木","口","辶","扌","日","糸","宀","忄"]);
+  deck = [];
+  CARD_POOL.forEach(p => {
+    const copies = TRIPLE_FREQ.has(p) ? 15 : 5;
+    for (let i = 0; i < copies; i++) deck.push(p);
+  });
+  shuffle(deck);  hand = [];
+  discarded = [];
+  selectedIndices = [];
+  score = 0;
+  gameStarted = false;
+  extraDrawUsed = 0;
+  hideStuckNotice();
+  updateUI();
+  showMessage("「７枚引く」ボタンでゲームスタート！", "info");
+  document.getElementById('draw-btn').textContent = '７枚引く';
+  document.getElementById('draw-hint').textContent = 'ゲーム開始';
+  document.getElementById('win-overlay').classList.remove('show');
+  document.getElementById('gameover-overlay').classList.remove('show');
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ====== カードを引く ======
+function drawCards() {
+  // 手札が残っているのにまだ組み合わせを試していない場合は補充不可
+  if (hand.length > 0) {
+    showMessage("手札を使い切ってから補充できます", "error"); return;
+  }
+  if (deck.length === 0) {
+    document.getElementById('gameover-sub').textContent = `残り手札: ${hand.length}枚 / スコア: ${score}`;
+    document.getElementById('gameover-overlay').classList.add('show');
+    return;
+  }
+  const take = Math.min(7, deck.length);
+  for (let i = 0; i < take; i++) {
+    hand.push({ part: deck.pop(), id: Date.now() + Math.random() });
+  }
+  gameStarted = true;
+  selectedIndices = [];
+  hideStuckNotice();
+  updateUI();
+  showMessage(`${take}枚引きました！組み合わせを見つけよう`, "info");
+  document.getElementById('draw-btn').textContent = '補充する';
+  document.getElementById('draw-hint').textContent = `山札残り: ${deck.length}枚`;
+  setTimeout(checkStuck, 300);
+}
+
+// ====== カード選択 ======
+function toggleCard(idx) {
+  if (selectedIndices.includes(idx)) {
+    selectedIndices = selectedIndices.filter(i => i !== idx);
+  } else {
+    if (selectedIndices.length >= 3) {
+      showMessage("最大3枚まで選択できます", "error"); return;
+    }
+    selectedIndices.push(idx);
+  }
+  updatePreview();
+  updateSubmitBtn();
+}
+
+function updatePreview() {
+  const preview = document.getElementById('selected-preview');
+  if (selectedIndices.length === 0) {
+    preview.innerHTML = `<span style="color:var(--gray);font-size:0.82rem">カードを2〜3枚選んでください</span>`;
+    return;
+  }
+  let html = '';
+  selectedIndices.forEach((idx, i) => {
+    if (i > 0) html += `<span class="preview-plus">＋</span>`;
+    html += `<div class="preview-card">${hand[idx].part}</div>`;
+  });
+  if (selectedIndices.length >= 2) {
+    // 構成検索リンク追加
+    const parts = selectedIndices.map(i => hand[i].part);
+    const searchUrl = buildKouseiSearchUrl(parts);
+    html += `<div style="margin-top:8px;font-size:0.75rem">
+      <a href="${searchUrl}" target="_blank" rel="noopener" 
+         style="color:var(--primary);text-decoration:none;opacity:0.8">
+        📖 この組み合わせで検索
+      </a>
+    </div>`;
+  }
+  preview.innerHTML = html;
+}
+
+function buildKouseiSearchUrl(parts) {
+  // パーツを文字コードに変換してURLを作成
+  const hex = parts.map(p => p.codePointAt(0).toString(16)).join('%2B');
+  return `https://kanji.jitenon.jp/kousei/list?data=${hex}`;
+}
+
+function updateSubmitBtn() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = selectedIndices.length < 2 || selectedIndices.length > 3;
+}
+
+// ====== 初期化 ======
+document.addEventListener('DOMContentLoaded', () => {
+  initGame();
+});
+
+// ====== jitenon判定：答えの漢字ページから構成パーツを取得して完全一致確認 ======
+async function checkWithJitenon(parts, answerChar) {
+  try {
+    const hex = answerChar.codePointAt(0).toString(16);
+    // Step1: 1文字で構成検索 → 常用漢字なら /kanji/番号 リンクが最初に出る
+    const listUrl = `https://kanji.jitenon.jp/kousei/list?data=${hex}`;
+    const listResp = await fetch(listUrl, { mode: 'cors' });
+    if (!listResp.ok) throw new Error(`list fetch failed: ${listResp.status}`);
+    const listHtml = await listResp.text();
+
+    // 常用漢字のリンク /kanji([a-h])?/数字 を探す（i,j,y などは非常用）
+    const joyoMatch = listHtml.match(/href="(https:\/\/kanji\.jitenon\.jp\/kanji([a-h])?\/\d+)"/);
+    if (!joyoMatch) {
+      // 常用漢字リンクが見つからない → 常用外
+      return { ok: false, joyo: false, reason: 'not_joyo' };
+    }
+    const kanjiPageUrl = joyoMatch[1];
+
+    // Step2: 漢字個別ページから構成パーツを取得
+    const pageResp = await fetch(kanjiPageUrl, { mode: 'cors' });
+    if (!pageResp.ok) throw new Error(`page fetch failed: ${pageResp.status}`);
+    const pageHtml = await pageResp.text();
+
+    // #m_kousei セクションの構成行を <li> ごとに分割して抽出
+    const kouseiMatch = pageHtml.match(/m_kousei[\s\S]{0,300}?(<ul[\s\S]+?<\/ul>)/);
+    if (!kouseiMatch) return { ok: false, joyo: true, reason: 'no_kousei' };
+
+    const kouseiBlock = kouseiMatch[1];
+    // <li>要素ごとに分割
+    const liItems = [...kouseiBlock.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m => m[1]);
+
+    if (liItems.length < 2) return { ok: false, joyo: true, reason: 'no_parts' };
+
+    // 行0は漢字自身 → スキップ。行1以降が構成候補
+    // 正規化マップ（表記揺れ吸収）
+    // 注：忄≠心、扌≠手、氵≠水、礻≠示、衤≠衣 なので正規化しない
+    const EQUIV = { "⺼": "月", "⻖": "阝" };
+    const norm = c => EQUIV[c] || c;
+    const normSorted = arr => arr.map(norm).sort().join(',');
+
+    const selectedNorm = normSorted(parts);
+
+    // 各構成行のパーツセットを作り、選択カードと1行でも一致すればOK
+    let siteParts = null;
+    const matched = liItems.slice(1).some(li => {
+      const hexes = [...li.matchAll(/kousei\/list\?data=([0-9a-f]+)/g)].map(m => m[1]);
+      const rowParts = hexes.map(h => String.fromCodePoint(parseInt(h, 16)));
+      if (normSorted(rowParts) === selectedNorm) {
+        siteParts = rowParts;
+        return true;
+      }
+      return false;
+    });
+
+    // 全行のパーツをまとめて不正解時の表示用に収集
+    const allCandidates = liItems.slice(1).map(li => {
+      const hexes = [...li.matchAll(/kousei\/list\?data=([0-9a-f]+)/g)].map(m => m[1]);
+      return hexes.map(h => String.fromCodePoint(parseInt(h, 16)));
+    });
+
+    return { ok: matched, joyo: true, siteParts, allCandidates, reason: matched ? '' : 'parts_mismatch' };
+
+  } catch(e) {
+    return { ok: null, joyo: false, reason: 'network', error: e.message };
+  }
+}
+
+// ====== 答え判定 ======
+async function submitCombo() {
+  if (selectedIndices.length < 2 || selectedIndices.length > 3) {
+    showMessage("2〜3枚のカードを選んでください", "error"); return;
+  }
+
+  const submitBtn = document.getElementById('submit-btn');
+  submitBtn.disabled = true;
+  const parts = selectedIndices.map(i => hand[i].part);
+
+  // ローカルデータで判定
+  const localMatch = findLocalMatchAny(parts.slice().sort());
+  
+  if (localMatch) {
+    // ローカルで一致 → 即正解
+    handleCorrect(parts, localMatch.kanji);
+    submitBtn.disabled = false;
+    return;
+  }
+
+  // ローカルにない → 不正解
+  showMessage(`「${parts.join('＋')}」は登録されていない組み合わせです`, "error");
+  submitBtn.disabled = false;
+}
+
+// ローカルデータから任意の一致する漢字を探す
+function findLocalMatchAny(selectedSorted) {
+  const normSelected = selectedSorted.map(normPart).sort();
+  for (const combo of KANJI_COMBOS_FINAL) {
+    if (combo.parts.length !== normSelected.length) continue;
+    const cNorm = combo.parts.map(normPart).sort();
+    if (cNorm.every((p, i) => p === normSelected[i])) {
+      return combo;
+    }
+  }
+  return null;
+}
+
+function handleCorrect(parts, answer, fromWeb = false) {
+  score += parts.length === 2 ? 10 : 18;
+  if (fromWeb) score += 3; // Web判定ボーナス
+  const sortedIdx = [...selectedIndices].sort((a, b) => b - a);
+  sortedIdx.forEach(i => hand.splice(i, 1));
+  selectedIndices = [];
+  discarded.push({ kanji: answer, parts, fromWeb });
+  const tag = fromWeb ? '📖 辞典正解！' : '✨ 正解！';
+  showMessage(`${tag}「${parts.join('＋')}」→「${answer}」`, "success");
+  updateUI();
+  if (hand.length === 0) {
+    hideStuckNotice();
+    if (deck.length === 0) {
+      setTimeout(showWin, 600);
+    } else {
+      showMessage(`✨ 手札が0枚！「補充する」で次のラウンドへ`, "success");
+      const drawBtn = document.getElementById('draw-btn');
+      drawBtn.style.animation = 'pulse 0.8s ease 3';
+    }
+  } else {
+    setTimeout(checkStuck, 300);
+  }
+}
+
+function handleWrong(parts, answer) {
+  showMessage(`「${parts.join('＋')}」→「${answer}」 は正しくないようです`, "error");
+}
+
+function findLocalMatch(selectedSorted, answer) {
+  const normSelected = selectedSorted.map(normPart).sort();
+  for (const combo of KANJI_COMBOS_FINAL) {
+    if (combo.kanji !== answer) continue;
+    if (combo.parts.length !== normSelected.length) continue;
+    const cNorm = combo.parts.map(normPart).sort();
+    if (JSON.stringify(cNorm) === JSON.stringify(normSelected)) return true;
+  }
+  return false;
+}
+
+// ====== 行き詰まりチェック ======
+function hasValidCombo() {
+  const handNorm = hand.map(c => normPart(c.part));
+  for (const combo of KANJI_COMBOS_FINAL) {
+    const tmp = [...handNorm];
+    let ok = true;
+    for (const p of combo.parts) {
+      const np = normPart(p);
+      const idx = tmp.indexOf(np);
+      if (idx === -1) { ok = false; break; }
+      tmp.splice(idx, 1);
+    }
+    if (ok) return true;
+  }
+  return false;
+}
+
+function checkStuck() {
+  if (!gameStarted || hand.length === 0) return;
+  const notice = document.getElementById('stuck-notice');
+  const hasCombo = hasValidCombo();
+  
+  // デバッグ情報（コンソールに出力）
+  if (!hasCombo && deck.length > 0) {
+    console.log('🔍 詰まり検出:', {
+      手札: hand.map(c => c.part),
+      山札残り: deck.length,
+      '有効なコンボ': hasCombo
+    });
+  }
+  
+  if (hasCombo) {
+    notice.classList.remove('show');
+  } else {
+    document.getElementById('extra-draw-remaining').textContent = deck.length;
+    const btn = document.getElementById('extra-draw-btn');
+    const pEl = notice.querySelector('p');
+    if (deck.length === 0) {
+      pEl.innerHTML = '🔍 現在の手札では<strong>有効な組み合わせが見つかりません</strong><br>山札も残っていません。ゲームオーバーです';
+      btn.disabled = true;
+    } else {
+      pEl.innerHTML = '🔍 現在の手札では<strong>有効な組み合わせが見つかりません</strong><br>山札から3枚追加で引くことができます';
+      btn.disabled = false;
+    }
+    notice.classList.add('show');
+  }
+}
+
+function hideStuckNotice() {
+  document.getElementById('stuck-notice').classList.remove('show');
+}
+
+function extraDraw() {
+  if (deck.length === 0) { showMessage("山札がありません", "error"); return; }
+  const take = Math.min(3, deck.length);
+  const drawn = [];
+  for (let i = 0; i < take; i++) {
+    const card = { part: deck.pop(), id: Date.now() + Math.random() };
+    hand.push(card);
+    drawn.push(card.part);
+  }
+  extraDrawUsed++;
+  updateUI();
+  document.getElementById('draw-hint').textContent = `山札残り: ${deck.length}枚`;
+  // 引いた後に組み合わせが成立するか再チェック
+  setTimeout(() => {
+    if (hasValidCombo()) {
+      hideStuckNotice();
+      showMessage(`「${drawn.join('」「')}」を引きました！組み合わせが見つかりました ✨`, "success");
+    } else {
+      showMessage(`「${drawn.join('」「')}」を引きました（追加引き: 計${extraDrawUsed}回）`, "info");
+      checkStuck();  // 引いてもまだ詰まっている場合は通知を更新
+    }
+  }, 200);
+}
+
+function clearSelection() {
+  selectedIndices = [];
+  updatePreview();
+  updateSubmitBtn();
+  updateHandCards();
+}
+
+
+// ====== ヒント ======
+function toggleHint() {
+  const area = document.getElementById('hint-area');
+  const btn = document.getElementById('hint-toggle');
+  if (area.style.display === 'none') {
+    area.style.display = 'block';
+    btn.textContent = 'ヒントを隠す';
+    generateHint();
+  } else {
+    area.style.display = 'none';
+    btn.textContent = 'ヒントを見る';
+  }
+}
+
+function generateHint() {
+  const area = document.getElementById('hint-area');
+  const realHints = [];
+  const handNorm = hand.map(c => normPart(c.part));
+  for (const combo of KANJI_COMBOS_FINAL) {
+    const tmp = [...handNorm];
+    let ok = true;
+    for (const p of combo.parts) {
+      const np = normPart(p);
+      const idx = tmp.indexOf(np);
+      if (idx === -1) { ok = false; break; }
+      tmp.splice(idx, 1);
+    }
+    if (ok) realHints.push(combo);
+  }
+  if (realHints.length === 0) {
+    area.innerHTML = '現在の手札では見つかりませんでした。';
+  } else {
+    const shown = realHints.slice(0, 3);
+    area.innerHTML = '現在の手札でできる漢字：<br>' +
+      shown.map(h => `<strong>「${h.parts.join('＋')}」→「${h.kanji}」</strong>`).join('　');
+  }
+}
+
+// ====== UI更新 ======
+function updateUI() {
+  document.getElementById('hand-count').textContent = hand.length;
+  document.getElementById('deck-count').textContent = deck.length;
+  document.getElementById('score').textContent = score;
+  document.getElementById('discard-count').textContent = discarded.length;
+  document.getElementById('hand-badge').textContent = `${hand.length}枚`;
+  document.getElementById('discard-badge').textContent = `${discarded.length}組`;
+  updateHandCards();
+  updateDiscarded();
+  updatePreview();
+  updateSubmitBtn();
+  // ゲーム中で手札がある場合、詰まりチェックを遅延実行
+  if (gameStarted && hand.length > 0) {
+    setTimeout(checkStuck, 100);
+  }
+}
+
+function updateHandCards() {
+  const area = document.getElementById('hand-area');
+  if (hand.length === 0) {
+    area.innerHTML = '<span class="empty-hand">手札がありません</span>';
+    return;
+  }
+  area.innerHTML = '';
+  hand.forEach((card, idx) => {
+    const el = document.createElement('div');
+    el.className = 'card' + (selectedIndices.includes(idx) ? ' selected' : '');
+    el.textContent = card.part;
+    // 部首など単体で漢字でないものにはツールチップと小ラベル
+    const label = PART_LABELS[card.part];
+    if (label) {
+      el.title = label;
+      const sub = document.createElement('div');
+      sub.style.cssText = 'position:absolute;bottom:4px;font-size:0.42rem;color:var(--gray);letter-spacing:0;text-align:center;line-height:1.1;width:100%;padding:0 2px;font-family:"Noto Sans JP",sans-serif;';
+      sub.textContent = label.replace(/.*\(/, '').replace(')', '');
+      el.appendChild(sub);
+    }
+    el.onclick = () => toggleCard(idx);
+    area.appendChild(el);
+  });
+}
+
+function updateDiscarded() {
+  const area = document.getElementById('discarded-area');
+  if (discarded.length === 0) {
+    area.innerHTML = '<span class="empty-hand">まだありません</span>';
+    return;
+  }
+  area.innerHTML = '';
+  discarded.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'discarded-item';
+    const badge = d.fromWeb ? '<span style="font-size:0.6rem;opacity:0.7">📖</span>' : '';
+    el.innerHTML = `<span class="discarded-kanji">${d.kanji}</span>${badge}<span class="discarded-parts">（${d.parts.join('＋')}）</span>`;
+    area.appendChild(el);
+  });
+}
+
+function showMessage(text, type) {
+  const el = document.getElementById('message');
+  el.className = `message ${type}`;
+  el.textContent = text;
+  el.style.display = 'flex';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+
+function showWin() {
+  document.getElementById('win-sub').textContent = `スコア: ${score}点 / ${discarded.length}組の漢字を完成！`;
+  document.getElementById('win-overlay').classList.add('show');
+}
+
+function resetGame() {
+  initGame();
+}
+</script>
+</body>
+</html>
